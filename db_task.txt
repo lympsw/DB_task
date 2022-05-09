@@ -1,0 +1,62 @@
+DECLARE
+  x_dept_name varchar(20);
+  x_name varchar(20);
+  x_title varchar(50);
+  x_credits numeric(10,2);
+  x_semester varchar(10);
+  x_year numeric(10,2);
+  x_grade varchar(10);
+  x_credits_sum numeric(10,2) :=0;
+  x_point numeric(10,2);
+  x_gpa numeric (10,2):=0;
+
+
+ CURSOR c1 is 
+    select distinct dept_name 
+    from student
+    order by dept_name asc; 
+ 
+CURSOR c2 is
+    select name 
+    from student
+    where dept_name = x_dept_name
+    order by name asc;
+
+ CURSOR c3 is 
+    select title, credits, semester, year , grade, points
+    from takes natural right outer join grade_points, course
+    where course.course_id = takes.course_id and takes.ID=(select ID from student where student.name=x_name)
+    order by year asc;
+
+BEGIN
+   OPEN c1;
+   LOOP
+      FETCH c1 INTO x_dept_name;
+      EXIT WHEN c1%NOTFOUND;
+      dbms_output.put_line (x_dept_name);
+      open c2;
+      loop
+          fetch c2 into x_name;
+          exit when c2%NOTFOUND;
+          dbms_output.put_line ('       '||x_name);
+          x_credits_sum :=0;
+          x_gpa :=0;
+          open c3;
+          loop
+          fetch c3 into x_title, x_credits, x_semester, x_year, x_grade, x_point;
+          if x_grade = null then x_grade := '-';
+          end if;
+          EXIT WHEN c3%NOTFOUND;
+          dbms_output.put_line ('                  '||x_title||' '||x_credits||' '||x_semester||' '||x_year||' '||x_grade);
+          x_gpa := x_gpa + (x_credits * x_point);
+          x_credits_sum := x_credits_sum + x_credits;
+          end loop;
+          close c3;
+          if x_credits_sum != 0 then x_gpa := x_gpa / x_credits_sum;
+          end if;
+          dbms_output.put_line ('                  Total Credits:'||x_credits_sum||'   GPA:'||x_gpa);
+      end loop;
+      close c2;
+   END LOOP;
+   CLOSE c1;
+END;
